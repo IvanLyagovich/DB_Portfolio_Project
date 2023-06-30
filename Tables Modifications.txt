@@ -1,0 +1,143 @@
+-- Adjusting the "orders" table in the "etsy db" database.
+-- Changing the data type of "order_id" to BIGINT.
+ALTER TABLE `etsy db`.`orders` 
+MODIFY COLUMN `order_id` BIGINT;
+
+-- Changing the data type of "transaction_id" to BIGINT.
+ALTER TABLE `etsy db`.`orders` 
+MODIFY COLUMN `transaction_id` BIGINT;
+
+-- Changing the data type of "date_shipped" to DATE and allowing NULL values.
+ALTER TABLE `etsy db`.`orders` 
+MODIFY COLUMN `date_shipped` DATE NULL;
+
+
+-- Adjusting the "reviews" table in the "etsy db" database.
+-- Changing the data type of "order_id" to BIGINT.
+ALTER TABLE `etsy db`.`reviews` 
+MODIFY COLUMN `order_id` BIGINT;
+
+
+-- Adjusting the "product_parts" table.
+-- Adding a new column "row_id" as the first column of the table with AUTO_INCREMENT and setting it as PRIMARY KEY.
+ALTER TABLE product_parts
+ADD COLUMN row_id INT AUTO_INCREMENT PRIMARY KEY FIRST;
+
+-- Changing the data type of "product_id" to INT and setting a default value of 1.
+ALTER TABLE product_parts
+MODIFY product_id INT NOT NULL DEFAULT 1;
+
+-- Changing the data type of "product_name" to VARCHAR(255) and setting a default value of 'default_product_name'.
+ALTER TABLE product_parts
+MODIFY product_name VARCHAR(255) NOT NULL DEFAULT 'default_product_name';
+
+-- Changing the data type of "part_id" to INT and setting a default value of 1.
+ALTER TABLE product_parts
+MODIFY part_id INT NOT NULL DEFAULT 1;
+
+
+-- Adjusting the "Parts" table in the "etsy db" database.
+-- Allowing NULL values for "box_id" column.
+ALTER TABLE `etsy db`.`Parts` MODIFY `box_id` INT NULL;
+
+-- Removing the "box_id" column from the "Parts" table.
+ALTER TABLE `etsy db`.`Parts` DROP COLUMN `box_id`;
+
+
+-- Column renaming
+-- Renaming "data_reviewed" column to "date_reviewed" in the "reviews" table.
+ALTER TABLE reviews 
+CHANGE COLUMN data_reviewed date_reviewed DATE NULL;
+
+-- Changing the data type of "buyer_id" to BIGINT in the "customers" table.
+ALTER TABLE customers
+MODIFY buyer_id BIGINT;
+
+-- Changing the data type of "transaction_id" to INT with a default value of 0 in the "customers" table.
+ALTER TABLE customers
+MODIFY transaction_id INT DEFAULT 0;
+
+-- Adding "transaction_id" and "order_id" columns to the "addresses2" table.
+ALTER TABLE addresses2
+ADD COLUMN transaction_id BIGINT,
+ADD COLUMN order_id BIGINT;
+
+-- Changing the data type of "buyer_id" to INT in the "addresses" table.
+ALTER TABLE addresses
+MODIFY buyer_id INT;
+
+
+-- Inserting data into "addresses2" table from "orders" table.
+INSERT INTO addresses2 (transaction_id, order_id)
+SELECT transaction_id, order_id
+FROM orders;
+
+
+-- Modifying columns in the "orders" table.
+ALTER TABLE orders MODIFY COLUMN order_id BIGINT;
+ALTER TABLE orders MODIFY COLUMN transaction_id BIGINT;
+ALTER TABLE listings CHANGE COLUMN liting_title listing_title VARCHAR(255);
+
+
+-- Joining "orders" and "listings" tables.
+SELECT *
+FROM orders O
+LEFT JOIN listings L ON O.listing_id = L.listing_id;
+
+
+-- Updating "item_name" column in "orders" table with "listing_title" values from "listings" table.
+UPDATE orders
+JOIN listings ON orders.listing_id = listings.listing_id
+SET orders.item_name = listings.listing_title;
+
+
+-- Selecting all rows from "orders" table.
+SELECT *
+FROM orders;
+
+
+-- Modifying columns in the "orders" table.
+ALTER TABLE orders MODIFY COLUMN sale_date DATE;
+
+
+-- Updating date columns in the "orders" table.
+UPDATE orders
+SET sale_date = STR_TO_DATE(sale_date, '%m/%d/%Y')
+WHERE STR_TO_DATE(sale_date, '%m/%d/%Y') IS NOT NULL;
+
+UPDATE orders
+SET date_paid = STR_TO_DATE(date_paid, '%m/%d/%Y')
+WHERE STR_TO_DATE(date_paid, '%m/%d/%Y') IS NOT NULL;
+
+UPDATE orders
+SET date_shipped = STR_TO_DATE(date_shipped, '%m/%d/%Y')
+WHERE STR_TO_DATE(date_shipped, '%m/%d/%Y') IS NOT NULL;
+
+
+-- Modifying columns in the "orders" table.
+ALTER TABLE orders MODIFY COLUMN sale_date DATE;
+ALTER TABLE orders MODIFY COLUMN date_paid DATE;
+ALTER TABLE orders MODIFY COLUMN date_shipped DATE;
+
+
+-- Selecting all rows from the "reviews" table.
+SELECT * 
+FROM `reviews`;
+
+
+-- Modifying columns in the "reviews" table.
+ALTER TABLE reviews
+ADD COLUMN reviewer VARCHAR(255),
+ADD COLUMN date_reviewed DATE,
+ADD COLUMN star_rating INT,
+ADD COLUMN order_id BIGINT;
+
+
+-- Modifying data type of "date_reviewed" column to DATE in the "reviews" table.
+ALTER TABLE reviews
+MODIFY date_reviewed DATE;
+
+
+-- Modifying data type of "order_id" column to BIGINT in the "reviews" table.
+ALTER TABLE reviews
+MODIFY order_id BIGINT;

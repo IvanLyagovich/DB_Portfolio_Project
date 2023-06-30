@@ -1,0 +1,155 @@
+-- Create three tables by selecting rows from the "parts" table.
+-- Each table represents a specific part type: Boxes, Isolon, or Roses.
+CREATE TABLE Boxes AS
+SELECT
+    part_id,
+    part_name
+FROM
+    parts
+WHERE
+    part_id BETWEEN 1 AND 3;
+
+CREATE TABLE Isolon AS
+SELECT
+    part_id,
+    part_name
+FROM
+    parts
+WHERE
+    part_id BETWEEN 4 AND 15;
+
+CREATE TABLE Roses AS
+SELECT
+    part_id,
+    part_name
+FROM
+    parts
+WHERE
+    part_id BETWEEN 16 AND 20;
+
+
+
+-- Select all combinations of Boxes, Isolon, and Roses using CROSS JOIN.
+-- Each row represents a unique combination of a box, an Isolon, and a rose.
+SELECT
+    box.part_id AS box_id,
+    box.part_name AS box_name,
+    isolon.part_id AS isolon_id,
+    isolon.part_name AS isolon_name,
+    roses.part_id AS roses_id,
+    roses.part_name AS roses_name
+FROM
+    Boxes AS box
+CROSS JOIN
+    Isolon AS isolon
+CROSS JOIN
+    Roses AS roses;
+
+
+
+-- Create a temporary table "TempTable" with the same structure as the previous SELECT query,
+-- but adding an artificial key "row_id" using a variable.
+SET @rn:=0;
+CREATE TEMPORARY TABLE TempTable AS
+SELECT
+    ((@rn:=@rn+1) * 3) - 2 AS row_id,
+    box.part_id AS box_id,
+    isolon.part_id AS isolon_id,
+    roses.part_id AS roses_id
+FROM
+    boxes AS box
+CROSS JOIN
+    isolon AS isolon
+CROSS JOIN
+    roses AS roses;
+
+
+
+-- Update "manufacturing" table to fill "part_id_for_box_id" with corresponding values from "TempTable".
+UPDATE manufacturing M
+JOIN TempTable T1 ON M.row_id = T1.row_id
+SET M.part_id_for_box_id = T1.box_id;
+UPDATE manufacturing M
+JOIN TempTable T2 ON M.row_id = T2.row_id + 1
+SET M.part_id_for_box_id = T2.isolon_id;
+UPDATE manufacturing M
+JOIN TempTable T3 ON M.row_id = T3.row_id + 2
+SET M.part_id_for_box_id = T3.roses_id;
+
+
+
+-- Add and rename columns in "manufacturing" to match the structure of "TempTable".
+ALTER TABLE manufacturing ADD box_body_id INT;
+ALTER TABLE manufacturing ADD roses_id INT;
+ALTER TABLE manufacturing CHANGE isolon isolon_id INT;
+
+
+
+-- Move the values from "part_id_for_box_id" to the new columns based on their ranges.
+UPDATE manufacturing SET box_body_id = part_id_for_box_id WHERE part_id_for_box_id BETWEEN 1 AND 3;
+UPDATE manufacturing SET roses_id = part_id_for_box_id WHERE part_id_for_box_id BETWEEN 4 AND 15;
+UPDATE manufacturing SET isolon_id = part_id_for_box_id WHERE part_id_for_box_id BETWEEN 16 AND 20;
+
+
+
+-- Remove duplicate rows in "manufacturing" where "box_id" is the same.
+DELETE t1 FROM manufacturing t1
+INNER JOIN manufacturing t2
+WHERE t1.row_id > t2.row_id AND t1.box_id = t2.box_id;
+
+
+
+-- Join "manufacturing" and "manufacturing_view" on "row_id" and "box_id".
+SELECT *
+FROM manufacturing M
+LEFT JOIN manufacturing_view MV ON M.row_id = M.box_id;
+
+
+
+-- Create a view "manufacturing_view_with_row_number" with row numbers, then update "manufacturing" with this view.
+CREATE OR REPLACE VIEW manufacturing_view_with_row_number AS
+SELECT
+    ROW_NUMBER() OVER () AS id,
+    box_id,
+    roses_id,
+    isolon_id
+FROM
+    manufacturing_view;
+
+UPDATE manufacturing m
+JOIN manufacturing_view_with_row_number mv ON m.id = mv.id
+SET m.box_id = mv.box_id,
+    m.roses_id = mv.roses_id,
+    m.isolon_id = mv.isolon_id;
+
+
+
+-- Add a primary key to "manufacturing", then drop the artificial "row_id".
+ALTER TABLE manufacturing ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY;
+ALTER TABLE manufacturing DROP COLUMN row_id;
+
+
+
+-- Rename columns and remove the now redundant "part_id_for_box_id".
+ALTER TABLE manufacturing CHANGE COLUMN id row_id INT;
+ALTER TABLE manufacturing DROP COLUMN part_id_for_box_id;
+
+
+
+-- Make "box_id" match the new "row_id".
+UPDATE manufacturing SET box_id = row_id;
+
+
+
+-- Rename the "parts_use_ratio" column to "total_parts_price".
+ALTER TABLE manufacturing CHANGE COLUMN parts_use_ratio total_parts_price INT;
+
+
+
+-- Update "total_parts_price" based on the value of "box_body_id".
+UPDATE manufacturing SET total_parts_price = CASE
+    WHEN box_body_id = 1 THEN 5
+    WHEN box_body_id = 2 THEN 7
+    WHEN box_body_id = 3 THEN 9
+    ELSE total_parts_price
+END;
